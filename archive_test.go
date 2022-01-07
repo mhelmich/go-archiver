@@ -23,8 +23,10 @@ func TestUntarWithNonTarFile(t *testing.T) {
 
 func TestTarUntar(t *testing.T) {
 	tests := []struct {
-		path       string
-		numEntries int
+		path         string
+		options      []TarOption
+		numEntries   int
+		ignoredFiles map[string]bool
 	}{
 		{
 			path:       "test-fixtures/tree1",
@@ -38,18 +40,26 @@ func TestTarUntar(t *testing.T) {
 			path:       "test-fixtures/tree3",
 			numEntries: 0,
 		},
+		{
+			path:       "test-fixtures/tree4",
+			options:    []TarOption{HonorGitIgnore()},
+			numEntries: 5,
+			ignoredFiles: map[string]bool{
+				"test-fixtures/tree4/d1/f11.txt": true,
+			},
+		},
 	}
 
 	for _, test := range tests {
-		runTestArchiveUnArchive(t, test.path, test.numEntries)
+		runTestArchiveUnArchive(t, test.path, test.options, test.numEntries, test.ignoredFiles)
 	}
 }
 
-func runTestArchiveUnArchive(t *testing.T, path string, numEntries int) {
+func runTestArchiveUnArchive(t *testing.T, path string, options []TarOption, numEntries int, ignoredFiles map[string]bool) {
 	file, err := ioutil.TempFile("", "TestArchiveUnArchive-file-")
 	assert.Nil(t, err)
 
-	err = Tar(path, file)
+	err = Tar(path, file, options...)
 	assert.Nil(t, err)
 	err = file.Close()
 	assert.Nil(t, err)
@@ -62,13 +72,13 @@ func runTestArchiveUnArchive(t *testing.T, path string, numEntries int) {
 	err = Untar(tempDir, file)
 	assert.Nil(t, err)
 
-	assertFoldersEqual(t, path, tempDir, numEntries)
+	assertFoldersEqual(t, path, tempDir, numEntries, ignoredFiles)
 }
 
-func assertFoldersEqual(t *testing.T, dir1 string, dir2 string, numEntries int) {
-	dir1Map, err := walkDir(dir1)
+func assertFoldersEqual(t *testing.T, dir1 string, dir2 string, numEntries int, ignoredFiles map[string]bool) {
+	dir1Map, err := walkDir(dir1, ignoredFiles)
 	assert.Nil(t, err)
-	dir2Map, err := walkDir(dir2)
+	dir2Map, err := walkDir(dir2, map[string]bool{})
 	assert.Nil(t, err)
 	assert.Equal(t, len(dir1Map), len(dir2Map))
 	assert.Equal(t, numEntries, len(dir1Map))
@@ -120,7 +130,7 @@ func hashFileContent(path string) (string, error) {
 	return string(hasher.Sum(nil)), nil
 }
 
-func walkDir(path string) (map[string]os.FileInfo, error) {
+func walkDir(path string, ignoredFiles map[string]bool) (map[string]os.FileInfo, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -152,5 +162,13 @@ func walkDir(path string) (map[string]os.FileInfo, error) {
 		m[absPath] = fi
 		return nil
 	})
+
+	for key := range ignoredFiles {
+		_, ok := m[key]
+		if ok {
+			delete(m, key)
+		}
+	}
+
 	return m, err
 }

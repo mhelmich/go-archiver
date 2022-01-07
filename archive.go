@@ -7,7 +7,21 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	gitignore "github.com/sabhiram/go-gitignore"
 )
+
+type tarOptions struct {
+	honorGitIgnore bool
+}
+
+type TarOption func(*tarOptions)
+
+func HonorGitIgnore() TarOption {
+	return func(opts *tarOptions) {
+		opts.honorGitIgnore = true
+	}
+}
 
 // Tar takes a source and a writers and walks 'source' writing each file
 // found to the tar writer.
@@ -15,7 +29,13 @@ import (
 // * skips root
 // * maintains empty folders
 // * does not follow (symbolic) links
-func Tar(source string, writer io.Writer) error {
+// * respects a .gitignore if it's found in the directory root
+func Tar(source string, writer io.Writer, opts ...TarOption) error {
+	tarOpts := &tarOptions{}
+	for _, opt := range opts {
+		opt(tarOpts)
+	}
+
 	source = filepath.Clean(source)
 	// ensure the source actually exists before trying to tar it
 	sourceFi, err := os.Stat(source)
@@ -30,6 +50,15 @@ func Tar(source string, writer io.Writer) error {
 	absSource, err := filepath.Abs(source)
 	if err != nil {
 		return err
+	}
+
+	var ignorer *gitignore.GitIgnore
+	if tarOpts.honorGitIgnore {
+		gitignorePath := filepath.Join(absSource, ".gitignore")
+		ignorer, err = gitignore.CompileIgnoreFile(gitignorePath)
+		if err != nil {
+			return err
+		}
 	}
 
 	return filepath.Walk(source, func(file string, fi os.FileInfo, err error) error {
@@ -51,6 +80,10 @@ func Tar(source string, writer io.Writer) error {
 			return nil
 		} else if !strings.HasPrefix(absFile, absSource) {
 			return fmt.Errorf("illegal file path: [%s]", absFile)
+		}
+
+		if ignorer != nil && ignorer.MatchesPath(relPath) {
+			return nil
 		}
 
 		// create a new dir/file header

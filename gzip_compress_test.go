@@ -26,5 +26,5 @@ func TestCompressDecompress(t *testing.T) {
 	err = GzipDecompress(tempDir, file)
 	assert.Nil(t, err)
 
-	assertFoldersEqual(t, "test-fixtures/tree1", tempDir, 3)
+	assertFoldersEqual(t, "test-fixtures/tree1", tempDir, 3, map[string]bool{})
 }
