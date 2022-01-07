@@ -10,7 +10,11 @@ import (
 )
 
 // Tar takes a source and a writers and walks 'source' writing each file
-// found to the tar writer. It skips root and maintains empty folders.
+// found to the tar writer.
+// It
+// * skips root
+// * maintains empty folders
+// * does not follow (symbolic) links
 func Tar(source string, writer io.Writer) error {
 	source = filepath.Clean(source)
 	// ensure the source actually exists before trying to tar it
@@ -78,8 +82,8 @@ func Tar(source string, writer io.Writer) error {
 	})
 }
 
-// Untar takes a destination path and a reader; a tar reader loops over the tarfile
-// creating the file structure at 'dst' along the way, and writing the files' contents
+// Untar takes a destination path and a reader. A tar reader loops over the tarfile
+// creating the file structure at 'destination' along the way, and writing the files' contents.
 func Untar(destination string, r io.Reader) error {
 	// ensure the destination actually exists before trying to untar into it
 	destinationFi, err := os.Stat(destination)

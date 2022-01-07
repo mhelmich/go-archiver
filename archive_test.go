@@ -11,7 +11,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestArchiveUnArchive(t *testing.T) {
+func TestUntarWithNonTarFile(t *testing.T) {
+	file, err := os.Open("test-fixtures/tree2/f1.txt")
+	assert.Nil(t, err)
+	tempDir, err := ioutil.TempDir("", "TestUntarWithNonTarFile-dir-")
+	assert.Nil(t, err)
+
+	err = Untar(tempDir, file)
+	assert.NotNil(t, err)
+}
+
+func TestTarUntar(t *testing.T) {
 	tests := []struct {
 		path       string
 		numEntries int
