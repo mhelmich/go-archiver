@@ -80,18 +80,20 @@ func Tar(source string, writer io.Writer, opts ...TarOption) error {
 			return nil
 		} else if !strings.HasPrefix(absFile, absSource) {
 			return fmt.Errorf("illegal file path: [%s]", absFile)
-		}
-
-		if ignorer != nil && ignorer.MatchesPath(relPath) {
+		} else if ignorer != nil && ignorer.MatchesPath(relPath) {
 			return nil
 		}
 
-		// create a new dir/file header
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
 			return err
 		}
 
+		// header name should be the path relative to the folder
+		// specified to be archived
+		// if the source folder is "./dir1" and dir1 contains
+		// a file f1.txt, then header name should be "f1.txt"
+		// and not "dir1/f1.txt"
 		header.Name = relPath
 		err = tw.WriteHeader(header)
 		if err != nil {
@@ -102,14 +104,12 @@ func Tar(source string, writer io.Writer, opts ...TarOption) error {
 			return nil
 		}
 
-		// open files for taring
 		f, err := os.Open(file)
 		if err != nil {
 			return err
 		}
 
 		defer f.Close()
-		// copy file data into tar writer
 		_, err = io.Copy(tw, f)
 		return err
 	})
@@ -138,8 +138,6 @@ func Untar(destination string, r io.Reader) error {
 			return nil
 		} else if err != nil {
 			return err
-		} else if header == nil {
-			return nil
 		}
 
 		// the target location where the dir/file should be created
