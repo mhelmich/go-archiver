@@ -6,10 +6,10 @@ import (
 )
 
 // GzipCompress fronts tar with a gzip compression stream.
-func GzipCompress(source string, writer io.Writer) error {
+func GzipCompress(source string, writer io.Writer, opts ...TarOption) error {
 	compressor := gzip.NewWriter(writer)
 	defer compressor.Close()
-	return Tar(source, compressor)
+	return Tar(source, compressor, opts...)
 }
 
 // GzipDecompress fronts tar with a gzip compression stream.
