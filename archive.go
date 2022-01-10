@@ -13,12 +13,33 @@ import (
 
 type tarOptions struct {
 	honorGitIgnore bool
+	ignoreDotGit   bool
 }
 
 type TarOption func(*tarOptions)
 
+// HonorGitIgnore will look for a .gitignore file in '.',
+// parse it, and only archive files that are not matched by
+// a rule in this .gitignore file.
+// The current implementation does not support multiple
+// .gitignore files in multiple folders.
 func HonorGitIgnore() TarOption {
 	return func(opts *tarOptions) {
+		opts.honorGitIgnore = true
+	}
+}
+
+// IgnoreDotGit does not archive any '.git' folders in any subdirectories.
+func IgnoreDotGit() TarOption {
+	return func(opts *tarOptions) {
+		opts.ignoreDotGit = true
+	}
+}
+
+// ArchiveGitRepo is a shorthand for HonorGitIgnore and IgnoreDotGit
+func ArchiveGitRepo() TarOption {
+	return func(opts *tarOptions) {
+		opts.ignoreDotGit = true
 		opts.honorGitIgnore = true
 	}
 }
@@ -52,13 +73,9 @@ func Tar(source string, writer io.Writer, opts ...TarOption) error {
 		return err
 	}
 
-	var ignorer *gitignore.GitIgnore
-	if tarOpts.honorGitIgnore {
-		gitignorePath := filepath.Join(absSource, ".gitignore")
-		ignorer, err = gitignore.CompileIgnoreFile(gitignorePath)
-		if err != nil {
-			return err
-		}
+	ignorer, err := newIgnorer(tarOpts, absSource)
+	if err != nil {
+		return err
 	}
 
 	return filepath.Walk(source, func(file string, fi os.FileInfo, err error) error {
@@ -174,4 +191,19 @@ func writeFile(tr *tar.Reader, target string, mode int64) error {
 	// copy over contents
 	_, err = io.Copy(f, tr)
 	return err
+}
+
+func newIgnorer(tarOpts *tarOptions, absSource string) (*gitignore.GitIgnore, error) {
+	var ignorer *gitignore.GitIgnore
+	var err error
+	if tarOpts.honorGitIgnore && tarOpts.ignoreDotGit {
+		gitignorePath := filepath.Join(absSource, ".gitignore")
+		ignorer, err = gitignore.CompileIgnoreFileAndLines(gitignorePath, "**/.git", ".gitignore")
+	} else if tarOpts.honorGitIgnore && !tarOpts.ignoreDotGit {
+		gitignorePath := filepath.Join(absSource, ".gitignore")
+		ignorer, err = gitignore.CompileIgnoreFileAndLines(gitignorePath, ".gitignore")
+	} else if !tarOpts.honorGitIgnore && tarOpts.ignoreDotGit {
+		ignorer = gitignore.CompileIgnoreLines("**/.git")
+	}
+	return ignorer, err
 }
