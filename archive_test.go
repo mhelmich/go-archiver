@@ -43,9 +43,21 @@ func TestTarUntar(t *testing.T) {
 		{
 			path:       "test-fixtures/tree4",
 			options:    []TarOption{HonorGitIgnore()},
-			numEntries: 5,
+			numEntries: 4,
 			ignoredFiles: map[string]bool{
 				"test-fixtures/tree4/d1/f11.txt": true,
+				"test-fixtures/tree4/.gitignore": true,
+			},
+		},
+		{
+			path:       "test-fixtures/tree5",
+			options:    []TarOption{ArchiveGitRepo()},
+			numEntries: 2,
+			ignoredFiles: map[string]bool{
+				"test-fixtures/tree5/f1.txt":       true,
+				"test-fixtures/tree5/.git/.holder": true,
+				"test-fixtures/tree5/.git":         true,
+				"test-fixtures/tree5/.gitignore":   true,
 			},
 		},
 	}
