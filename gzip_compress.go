@@ -15,6 +15,7 @@ const (
 	HuffmanOnly        = gzip.HuffmanOnly
 )
 
+// CompressionLevel allows users to the compression level of gzip
 func CompressionLevel(level int) TarOption {
 	return func(opts *tarOptions) {
 		opts.level = level
@@ -34,7 +35,7 @@ func GzipCompress(source string, writer io.Writer, opts ...TarOption) error {
 	}
 
 	defer compressor.Close()
-	return Tar(source, compressor, opts...)
+	return tarWithOpts(source, compressor, tarOpts)
 }
 
 // GzipDecompress fronts tar with a gzip decompression stream.

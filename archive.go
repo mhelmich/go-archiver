@@ -64,6 +64,10 @@ func Tar(source string, writer io.Writer, opts ...TarOption) error {
 		opt(tarOpts)
 	}
 
+	return tarWithOpts(source, writer, tarOpts)
+}
+
+func tarWithOpts(source string, writer io.Writer, tarOpts *tarOptions) error {
 	source = filepath.Clean(source)
 	// ensure the source actually exists before trying to tar it
 	sourceFi, err := os.Stat(source)
