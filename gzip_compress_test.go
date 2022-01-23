@@ -12,7 +12,7 @@ func TestCompressDecompress(t *testing.T) {
 	file, err := ioutil.TempFile("", "TestCompressDecompress-file-")
 	assert.Nil(t, err)
 
-	err = GzipCompress("test-fixtures/tree1", file)
+	err = GzipCompress("test-fixtures/tree1", file, CompressionLevel(BestCompression))
 	assert.Nil(t, err)
 	err = file.Close()
 	assert.Nil(t, err)
