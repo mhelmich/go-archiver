@@ -11,9 +11,16 @@ import (
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
+func defaultOpts() *tarOptions {
+	return &tarOptions{
+		level: DefaultCompression,
+	}
+}
+
 type tarOptions struct {
 	honorGitIgnore bool
 	ignoreDotGit   bool
+	level          int
 }
 
 type TarOption func(*tarOptions)
@@ -52,7 +59,7 @@ func ArchiveGitRepo() TarOption {
 // * does not follow (symbolic) links
 // * respects a .gitignore if it's found in the directory root
 func Tar(source string, writer io.Writer, opts ...TarOption) error {
-	tarOpts := &tarOptions{}
+	tarOpts := defaultOpts()
 	for _, opt := range opts {
 		opt(tarOpts)
 	}
@@ -134,6 +141,7 @@ func Tar(source string, writer io.Writer, opts ...TarOption) error {
 
 // Untar takes a destination path and a reader. A tar reader loops over the tarfile
 // creating the file structure at 'destination' along the way, and writing the files' contents.
+// TODO: make sure that every file that tries to leave the box is skipped
 func Untar(destination string, r io.Reader) error {
 	// ensure the destination actually exists before trying to untar into it
 	destinationFi, err := os.Stat(destination)
